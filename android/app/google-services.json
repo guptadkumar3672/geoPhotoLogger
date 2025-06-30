@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "900443835853",
+    "project_id": "geophotologger-8ffed",
+    "storage_bucket": "geophotologger-8ffed.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:900443835853:android:2112f58296ded563750884",
+        "android_client_info": {
+          "package_name": "com.geophotologger"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD0S3IrFT9_JWnXzHKc3ebkvbSOKwcq-nw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
