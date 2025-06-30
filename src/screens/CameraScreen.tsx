@@ -1,41 +1,56 @@
-import React, { useState } from 'react';
-import { Alert, Platform } from 'react-native';
-import { Box, Button, Text, Image } from '@gluestack-ui/themed';
-import Geolocation from '@react-native-community/geolocation';
-import { launchCamera } from 'react-native-image-picker';
+import React, {useEffect, useState} from 'react';
+import {Alert, Platform} from 'react-native';
+import {Box, Button, Text, Image} from '@gluestack-ui/themed';
+import {launchCamera} from 'react-native-image-picker';
 import firestore from '@react-native-firebase/firestore';
-import storage from '@react-native-firebase/storage';
-import { request, PERMISSIONS } from 'react-native-permissions';
+import {request, PERMISSIONS} from 'react-native-permissions';
 import RNFS from 'react-native-fs';
+import {Image as CompressorImage} from 'react-native-compressor';
+import LocationManager from '../location/LocationManager';
 
 const CameraScreen = () => {
   const [imageUri, setImageUri] = useState<string | null>(null);
-  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
+  const [coords, setCoords] = useState<{lat: number; lon: number} | null>(null);
   const [uploading, setUploading] = useState<boolean>(false);
+
+  useEffect(() => {
+    LocationManager.shared.setup();
+  }, []);
 
   const requestPermissions = async () => {
     try {
       if (Platform.OS === 'android') {
         const cameraResult = await request(PERMISSIONS.ANDROID.CAMERA);
-        const locationResult = await request(PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION);
-        const storageResult = Platform.Version >= 33
-          ? await request(PERMISSIONS.ANDROID.READ_MEDIA_IMAGES)
-          : await request(PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE);
+        const locationResult = await request(
+          PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION,
+        );
+        const storageResult =
+          Platform.Version >= 33
+            ? await request(PERMISSIONS.ANDROID.READ_MEDIA_IMAGES)
+            : await request(PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE);
 
         if (
           cameraResult !== 'granted' ||
           locationResult !== 'granted' ||
           storageResult !== 'granted'
         ) {
-          Alert.alert('Permission Denied', 'Camera, location, or storage permissions are required.');
+          Alert.alert(
+            'Permission Denied',
+            'Camera, location, or storage permissions are required.',
+          );
           return false;
         }
       } else {
         const cameraResult = await request(PERMISSIONS.IOS.CAMERA);
-        const locationResult = await request(PERMISSIONS.IOS.LOCATION_WHEN_IN_USE);
+        const locationResult = await request(
+          PERMISSIONS.IOS.LOCATION_WHEN_IN_USE,
+        );
 
         if (cameraResult !== 'granted' || locationResult !== 'granted') {
-          Alert.alert('Permission Denied', 'Camera or location permissions are required.');
+          Alert.alert(
+            'Permission Denied',
+            'Camera or location permissions are required.',
+          );
           return false;
         }
       }
@@ -51,36 +66,30 @@ const CameraScreen = () => {
     const hasPermission = await requestPermissions();
     if (!hasPermission) return;
 
-    launchCamera(
-      { mediaType: 'photo', saveToPhotos: true },
-      (response) => {
-        if (response.didCancel) {
-          console.log('User cancelled image picker');
-        } else if (response.errorCode) {
-          Alert.alert('Camera Error', response.errorMessage || 'Unknown error');
-        } else if (response.assets && response.assets.length > 0) {
-          const uri = response.assets[0].uri || null;
-          console.log('Photo URI:', uri);
-          setImageUri(uri);
+    launchCamera({mediaType: 'photo', saveToPhotos: true}, async response => {
+      if (response.didCancel) {
+        console.log('User cancelled image picker');
+      } else if (response.errorCode) {
+        Alert.alert('Camera Error', response.errorMessage || 'Unknown error');
+      } else if (response.assets && response.assets.length > 0) {
+        const uri = response.assets[0].uri || null;
+        console.log('Photo URI:', uri);
+        setImageUri(uri);
 
-          Geolocation.getCurrentPosition(
-            (position) => {
-              const { latitude, longitude } = position.coords;
-              setCoords({ lat: latitude, lon: longitude });
-            },
-            (error) => {
-              console.warn('Location error:', error.message);
-              Alert.alert('Location Error', error.message);
-              setCoords(null);
-            },
-            { enableHighAccuracy: false, timeout: 15000, maximumAge: 10000 }
-          );
+        try {
+          const position = await LocationManager.shared.getCurrentPosition();
+          const {latitude, longitude} = position.coords;
+          setCoords({lat: latitude, lon: longitude});
+        } catch (error: any) {
+          console.warn('Location error:', error.message);
+          Alert.alert('Location Error', error.message);
+          setCoords(null);
         }
       }
-    );
+    });
   };
 
-  const uploadToFirebase = async () => {
+  const uploadToFirestoreAsBase64 = async () => {
     if (!imageUri) {
       Alert.alert('Missing Data', 'No image to upload.');
       return;
@@ -88,38 +97,43 @@ const CameraScreen = () => {
 
     try {
       setUploading(true);
-      console.log('Starting upload process...');
-      const filePath = Platform.OS === 'android' ? imageUri.replace('file://', '') : imageUri;
-      const exists = await RNFS.exists(filePath);
+      console.log('Starting compression...');
 
-      if (!exists) throw new Error('File does not exist at path');
+      const filePath =
+        Platform.OS === 'android' ? imageUri.replace('file://', '') : imageUri;
 
-      const filename = filePath.split('/').pop() || `image_${Date.now()}.jpg`;
-      const cleanFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
-
-      const ref = storage().ref(`images/${cleanFilename}`);
-      console.log('Uploading file from:', filePath);
-
-   
-      const result = await ref.putFile(filePath);
-      console.log('Upload state:', result.state);
-     
-      const url = await ref.getDownloadURL();
-      console.log('Download URL:', url);
-
-   
-      await firestore().collection('photos').add({
-        imageUrl: url,
-        timestamp: firestore.FieldValue.serverTimestamp(),
-        coordinates: coords || null,
+      // Compress the image
+      console.log('Before CompressorImage.compress');
+      const compressedUri = await CompressorImage.compress(filePath, {
+        maxWidth: 800,
+        quality: 0.6,
+        compressionMethod: 'auto',
       });
+      console.log('Compressed URI:', compressedUri);
 
-      Alert.alert('Success', 'Photo uploaded successfully.');
+      console.log('Reading file as base64...');
+      const base64 = await RNFS.readFile(compressedUri, 'base64');
+      console.log('Base64 size:', base64.length);
+
+      console.log('Uploading to Firestore...');
+      await firestore()
+        .collection('photos')
+        .add({
+          imageBase64: base64,
+          timestamp: firestore.FieldValue.serverTimestamp(),
+          coordinates: coords || null,
+        });
+      console.log('Upload completed ✅');
+
+      Alert.alert('Success', 'Photo uploaded to Firestore as Base64.');
       setImageUri(null);
       setCoords(null);
     } catch (error: any) {
       console.error('Upload error:', error.message);
-      Alert.alert('Upload Failed', error.message || 'An error occurred during upload.');
+      Alert.alert(
+        'Upload Failed',
+        error.message || 'An error occurred during upload.',
+      );
     } finally {
       setUploading(false);
     }
@@ -134,7 +148,7 @@ const CameraScreen = () => {
       {imageUri && (
         <>
           <Image
-            source={{ uri: imageUri }}
+            source={{uri: imageUri}}
             alt="Preview"
             w={200}
             h={200}
@@ -142,9 +156,13 @@ const CameraScreen = () => {
             borderRadius="$lg"
           />
           <Text mt="$2">
-            Coordinates: {coords ? `${coords.lat}, ${coords.lon}` : 'Fetching...'}
+            Coordinates:{' '}
+            {coords ? `${coords.lat}, ${coords.lon}` : 'Fetching...'}
           </Text>
-          <Button onPress={uploadToFirebase} mt="$4" isDisabled={uploading}>
+          <Button
+            onPress={uploadToFirestoreAsBase64}
+            mt="$4"
+            isDisabled={uploading}>
             <Text>{uploading ? 'Uploading...' : 'Upload'}</Text>
           </Button>
         </>
