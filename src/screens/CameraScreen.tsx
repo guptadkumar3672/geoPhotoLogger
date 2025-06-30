@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react';
-import {Alert, Platform} from 'react-native';
-import {Box, Button, Text, Image} from '@gluestack-ui/themed';
+import {Alert, Platform, TouchableOpacity} from 'react-native';
+import {Box, Button, Text, Image, styled} from '@gluestack-ui/themed';
 import {launchCamera} from 'react-native-image-picker';
 import firestore from '@react-native-firebase/firestore';
 import {request, PERMISSIONS} from 'react-native-permissions';
@@ -125,7 +125,7 @@ const CameraScreen = () => {
         });
       console.log('Upload completed ✅');
 
-      Alert.alert('Success', 'Photo uploaded to Firestore as Base64.');
+      Alert.alert('Success', 'Photo uploaded successfully...');
       setImageUri(null);
       setCoords(null);
     } catch (error: any) {
@@ -141,9 +141,20 @@ const CameraScreen = () => {
 
   return (
     <Box p="$4">
-      <Button onPress={takePhoto} isDisabled={uploading}>
-        <Text>{uploading ? 'Uploading...' : 'Take Photo'}</Text>
-      </Button>
+      <TouchableOpacity
+        onPress={takePhoto}
+        disabled={uploading}
+        style={{
+          backgroundColor: '#5F12AA',
+          height: 40,
+          justifyContent: 'center',
+          alignItems: 'center',
+          borderRadius: 10,
+        }}>
+        <Text style={{color: 'white', textAlign: 'center'}}>
+          {uploading ? 'Uploading...' : 'Take Photo'}
+        </Text>
+      </TouchableOpacity>
 
       {imageUri && (
         <>
@@ -152,19 +163,28 @@ const CameraScreen = () => {
             alt="Preview"
             w={200}
             h={200}
-            mt="$4"
-            borderRadius="$lg"
+            mt={16}
+            borderRadius={16}
           />
           <Text mt="$2">
             Coordinates:{' '}
             {coords ? `${coords.lat}, ${coords.lon}` : 'Fetching...'}
           </Text>
-          <Button
+
+          <TouchableOpacity
             onPress={uploadToFirestoreAsBase64}
-            mt="$4"
-            isDisabled={uploading}>
-            <Text>{uploading ? 'Uploading...' : 'Upload'}</Text>
-          </Button>
+            disabled={uploading}
+            style={{
+              backgroundColor: '#5F12AA',
+              height: 40,
+              justifyContent: 'center',
+              alignItems: 'center',
+              borderRadius: 10,
+            }}>
+            <Text style={{color: 'white', textAlign: 'center'}}>
+              {uploading ? 'Uploading...' : 'Upload'}
+            </Text>
+          </TouchableOpacity>
         </>
       )}
     </Box>

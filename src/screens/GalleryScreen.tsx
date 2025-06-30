@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { ScrollView, Linking } from 'react-native';
+import React, {useEffect, useState} from 'react';
+import {ScrollView, Linking} from 'react-native';
 import firestore from '@react-native-firebase/firestore';
-import { Box, Image, Text, Pressable } from '@gluestack-ui/themed';
+import {Box, Image, Text, Pressable} from '@gluestack-ui/themed';
 
 const GalleryScreen = () => {
   const [photos, setPhotos] = useState<any[]>([]);
@@ -20,7 +20,11 @@ const GalleryScreen = () => {
   return (
     <ScrollView>
       {photos.map((item, index) => (
-        <Box key={index} p="$4" borderBottomWidth={1} borderColor="$coolGray200">
+        <Box
+          key={index}
+          p="$4"
+          borderBottomWidth={1}
+          borderColor="$coolGray200">
           <Image
             source={{
               uri: item.imageBase64
@@ -30,7 +34,7 @@ const GalleryScreen = () => {
             alt="Photo"
             w={300}
             h={200}
-            borderRadius="$lg"
+            borderRadius={16}
           />
           {item.coordinates && (
             <Text mt="$2">
@@ -44,7 +48,9 @@ const GalleryScreen = () => {
           {item.coordinates && (
             <Pressable
               onPress={() =>
-                Linking.openURL(`https://maps.google.com/?q=${item.coordinates.lat},${item.coordinates.lon}`)
+                Linking.openURL(
+                  `https://maps.google.com/?q=${item.coordinates.lat},${item.coordinates.lon}`,
+                )
               }>
               <Text mt="$1" color="$blue600">
                 Open in Google Maps

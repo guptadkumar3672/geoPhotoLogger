@@ -1,5 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {View, StyleSheet} from 'react-native';
+import {View, StyleSheet, Image} from 'react-native';
 import MapView, {Marker, PROVIDER_GOOGLE, Region} from 'react-native-maps';
 import firestore from '@react-native-firebase/firestore';
 import {useIsFocused} from '@react-navigation/native';
@@ -72,7 +72,7 @@ const MapScreen = () => {
     <View style={styles.container}>
       <MapView ref={mapRef} style={styles.map} region={currentRegion}>
         {locations.map((item, index) => {
-          console.log('item.coordinates--', item.coordinates)
+          console.log('item.coordinates--', item.coordinates);
 
           return (
             <Marker
@@ -82,9 +82,23 @@ const MapScreen = () => {
                 longitude: item?.coordinates?.lon ?? 0,
               }}
               title={item.timestamp?.toDate?.().toString() || 'Uploaded Image'}
-              image={{uri: `data:image/jpeg;base64,${item.imageBase64}`}}
-              style={{height: 30, width: 30}}
-            />
+              // image={{uri: `data:image/jpeg;base64,${item.imageBase64}`}}
+              // style={{height: 30, width: 30}}
+            >
+              <View>
+                <Image
+                  source={{uri: `data:image/jpeg;base64,${item.imageBase64}`}}
+                  style={{
+                    height: 35,
+                    width: 35,
+                    borderWidth: 1,
+                    borderRadius: 40,
+                    borderColor:"black"
+                  }}
+                  resizeMode='contain'
+                />
+              </View>
+            </Marker>
           );
         })}
       </MapView>
