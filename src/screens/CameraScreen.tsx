@@ -100,15 +100,14 @@ const CameraScreen = () => {
       const ref = storage().ref(`images/${cleanFilename}`);
       console.log('Uploading file from:', filePath);
 
-      // Upload
+   
       const result = await ref.putFile(filePath);
-      console.log('Upload state:', result.state); // 'success'
-
-      // Download URL
+      console.log('Upload state:', result.state);
+     
       const url = await ref.getDownloadURL();
       console.log('Download URL:', url);
 
-      // Firestore entry
+   
       await firestore().collection('photos').add({
         imageUrl: url,
         timestamp: firestore.FieldValue.serverTimestamp(),
