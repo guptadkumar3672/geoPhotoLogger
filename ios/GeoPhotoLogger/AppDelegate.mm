@@ -1,5 +1,6 @@
 #import "AppDelegate.h"
 #import <Firebase.h>
+#import <GoogleMaps/GoogleMaps.h>
 
 #import <React/RCTBundleURLProvider.h>
 
@@ -8,6 +9,7 @@
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
   self.moduleName = @"GeoPhotoLogger";
+    [GMSServices provideAPIKey:@"AIzaSyArV1fJZqucNibJ4INgsEmao5Yh0Cs8CMw"];
   // You can add your custom initial props in the dictionary below.
 
    [FIRApp configure]; 
